@@ -1,4 +1,3 @@
-<script>
 (function() {
     // 1) Espera o DOM
     function onDOMReady(cb) {
@@ -199,4 +198,3 @@
     });
 
 })();
-</script>
