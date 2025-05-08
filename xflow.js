@@ -154,8 +154,7 @@
             var sel = 'a[href*="pay.hotmart.com"], a[href*="greenn.com.br"], a[href*="payfast.greenn.com.br"]';
             var slug = window.location.pathname.replace(/^\/|\/$/g,'');
             var ublk = [
-                utm.utm_id,utm.utm_source,utm.utm_campaign,
-                utm.utm_medium,utm.utm_content,utm.utm_term
+                utm.utm_source,utm.utm_medium,utm.utm_campaign,utm.utm_term,utm.utm_content,utm.utm_id
             ].join('|');
             
             var xcod = [
@@ -174,7 +173,7 @@
                 if (href.includes('hotmart.com')) {
                 params = 'sck='+ublk+'&xcod='+xcod+'&src='+slug;
                 } else {
-                params = 'utm_source='+ublk+'&xcod='+xcod+'&src='+slug;
+                params = 'sck='+ublk+'&xcod='+xcod+'&src='+slug;
                 }
 
                 a.setAttribute('href', href + sep + params);
