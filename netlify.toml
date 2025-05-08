@@ -1,0 +1,13 @@
+[build]
+  # Sem build steps: apenas publica a raiz
+  publish = "."
+
+[dev]
+  # Para testar localmente com `netlify dev`
+  framework = "#custom"
+
+# Cache longo para seu JS
+[[headers]]
+  for = "/xflow.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
