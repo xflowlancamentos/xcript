@@ -7,12 +7,11 @@
   framework = "#custom"
 
 # Cache longo para seu JS
+# netlify.toml
 [[headers]]
   for = "/xflow.js"
   [headers.values]
-    # cache longo em CDN
-    Cache-Control = "public, max-age=31536000, immutable"
-    # libera para QUALQUER origem
-    Access-Control-Allow-Origin = "*"
-    # indica explicitamente que este recurso pode ser carregado cross-origin
-    Cross-Origin-Resource-Policy = "cross-origin"
+    Cache-Control                = "public, max-age=31536000, immutable"
+    Access-Control-Allow-Origin  = "*"                    # libera para qualquer origem
+    Cross-Origin-Resource-Policy = "cross-origin"         # indica que o recurso pode ser carregado cross-origin
+
