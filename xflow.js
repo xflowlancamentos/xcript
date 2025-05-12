@@ -1,29 +1,30 @@
 (function() {
-    // 1) Espera o DOM
+    // 1) Defaults e URLs
+    var DEFAULT_GEO = { city:'', st:'', country:'', zp:'', ip:'' };
+    var GEO_URL     = 'https://ipapi.co/json/?key=Vp36YgwyV4FHt5L0Vzj5BnCXtmiED7ivUdPqHt0f6Nqbr7TEV6';
+    var TIMEOUT_MS  = 1000;
+
+    // 2) onDOMReady
     function onDOMReady(cb) {
         if (document.readyState !== 'loading') return cb();
         document.addEventListener('DOMContentLoaded', cb);
     }
 
-    // 2) Carrega o CryptoJS
+    // 3) Carrega CryptoJS
     function loadCryptoJS(cb) {
-        if (typeof CryptoJS !== 'undefined') return cb();
+        if (window.CryptoJS) return cb();
         var s = document.createElement('script');
         s.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
         s.onload = cb;
-        s.onerror = function(){ console.error('Falha ao carregar CryptoJS'); };
+        s.onerror = cb;
         document.head.appendChild(s);
     }
 
-    // 3) Utilitários
+    // 4) Utilitários
     var utils = {
-        // <<< reintroduzido >>>
-        getURLParam: function(key) {
-            var p = new URLSearchParams(window.location.search);
-            return p.get(key) || '';
-        },
-        getUTMParams: function() {
-            var p = new URLSearchParams(window.location.search);
+        getURLParam: k => new URLSearchParams(location.search).get(k) || '',
+        getUTMParams: () => {
+            var p = new URLSearchParams(location.search);
             return {
                 utm_source:   p.get('utm_source')   || '',
                 utm_medium:   p.get('utm_medium')   || '',
@@ -33,167 +34,97 @@
                 utm_content:  p.get('utm_content')  || ''
             };
         },
-        getFBCookies: function() {
-            var p = new URLSearchParams(window.location.search),
-                fbclid = p.get('fbclid'),
-                fbc = '', fbp = '';
-
-            if (fbclid) {
-                fbc = 'fb.1.' + Math.floor(Date.now()/1000) + '.' + fbclid;
-            } else {
-                document.cookie.split('; ').forEach(function(c){
-                    var kv = c.split('=');
-                    if (kv[0]==='_fbc') fbc = kv[1];
-                });
-            }
-            document.cookie.split('; ').forEach(function(c){
+        getFBCookies: () => {
+            var p = new URLSearchParams(location.search), fbclid = p.get('fbclid'), fbc = '', fbp = '';
+            if (fbclid) fbc = 'fb.1.' + Math.floor(Date.now()/1000) + '.' + fbclid;
+            document.cookie.split('; ').forEach(c => {
                 var kv = c.split('=');
-                if (kv[0]==='_fbp') fbp = kv[1];
+                if (kv[0] === '_fbc') fbc = kv[1];
+                if (kv[0] === '_fbp') fbp = kv[1];
             });
-            return { fbc:fbc, fbp:fbp };
+            return { fbc, fbp };
         },
-        // **SUA** lógica de GeoData que funciona perfeitamente
+        hashData: str => {
+            str = str ? String(str).trim().toLowerCase() : '';
+            if (!str || !window.CryptoJS) return '';
+            return CryptoJS.SHA256(str).toString();
+        },
         getGeoData: function(cb) {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', 'https://ipapi.co/json/?key=Vp36YgwyV4FHt5L0Vzj5BnCXtmiED7ivUdPqHt0f6Nqbr7TEV6', true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState!==4) return;
-                if (xhr.status===200) {
-                    try {
-                        var d = JSON.parse(xhr.responseText);
-                        cb({
-                            city:    d.city,
-                            st:      d.region_code,
-                            country: d.country_code,
-                            zp:      d.postal,
-                            ip:      d.ip
-                        });
-                    } catch(e) {
-                        console.error('Erro ao parsear GeoData:', e);
-                        cb({});
+            var done = false;
+            var to = setTimeout(() => { if (!done) { done = true; cb(DEFAULT_GEO); } }, TIMEOUT_MS);
+            fetch(GEO_URL)
+                .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+                .then(d => {
+                    if (!done) {
+                        done = true; clearTimeout(to);
+                        cb({ city: d.city||'', st: d.region_code||'', country: d.country_code||'', zp: d.postal||'', ip: d.ip||'' });
                     }
-                } else {
-                    console.error('Erro ao fetch GeoData:', xhr.status);
-                    cb({});
-                }
-            };
-            xhr.send();
-        },
-        hashData: function(str) {
-            return str
-                ? CryptoJS.SHA256(str.trim().toLowerCase()).toString()
-                : '';
+                })
+                .catch(() => { if (!done) { done = true; clearTimeout(to); cb(DEFAULT_GEO); } });
         }
     };
 
-    // 4) Configura form + links
-    function setupForm(geo) {
-        console.log('GeoData carregado:', geo);
-        var f = document.querySelector('form');
-        if (!f) return console.error('Form não encontrado');
+    // 5) Função de processamento de links sempre disponível
+    function processPaymentLinks() {
+        var sel  = 'a[href*="pay.hotmart.com"], a[href*="greenn.com.br"], a[href*="payfast.greenn.com.br"]',
+            slug = location.pathname.replace(/^\//,'').replace(/\/$/,''),
+            u   = utils.getUTMParams(),
+            ublk= [u.utm_id,u.utm_source,u.utm_campaign,u.utm_medium,u.utm_content,u.utm_term].join('|'),
+            xcod= ['mac_id','gac_id','tiktok_id','s_as_id','s_ad_id']
+                  .map(utils.getURLParam).filter(Boolean).join('|');
 
-        // pega valores do form
-        function vals() {
-            return {
-                name:  (f.querySelector('[name="name"]')  || {}).value||'',
-                email: (f.querySelector('[name="email"]') || {}).value||'',
-                doc:   (f.querySelector('[name="doc"]')   || {}).value||'',
-                phone: (f.querySelector('[name="phone"]') || {}).value||''
-            };
-        }
-
-        // montadora do JSONPX
-        function updateHidden() {
-            var u = utils.getUTMParams(),
-                fb = utils.getFBCookies(),
-                v = vals(),
-                now = new Date(),
-                ts  = Math.floor(now.getTime()/1000);
-
-            var jsonpx = {
-                data:[{
-                    event_name:     "Lead",
-                    event_time:     ts,
-                    event_source_url: window.location.href,
-                    action_source:  "website",
-                    user_data:{
-                        em:  utils.hashData(v.email),
-                        ph:  utils.hashData(v.phone.replace(/\D/g,'')),
-                        ct:  utils.hashData(geo.city)    || '',
-                        st:  utils.hashData(geo.st)      || '',
-                        zp:  utils.hashData(geo.zp)      || '',
-                        country: utils.hashData(geo.country)||'',
-                        client_ip_address: geo.ip||'',
-                        client_user_agent: navigator.userAgent,
-                        fbp: fb.fbp,
-                        fbc: fb.fbc,
-                        external_id: utils.hashData(geo.ip)
-                    },
-                    custom_data: Object.assign({
-                        currency: "BRL",
-                        content_type: "lead",
-                        event_day: now.getDate(),
-                        event_time_interval: now.toISOString()
-                    }, u)
-                }],
-                test_event_code:""
-            };
-
-            var hf = document.getElementById('form-field-jsonpx');
-            if (hf) {
-                hf.value = JSON.stringify(jsonpx);
-            } else {
-                console.error('Campo oculto jsonpx não encontrado');
-            }
-
-            processPaymentLinks(u, geo);
-        }
-
-        // corrige todos os <a> de Hotmart e Greenn
-        function processPaymentLinks(utm, geo) {
-            var sel = 'a[href*="pay.hotmart.com"], a[href*="greenn.com.br"], a[href*="payfast.greenn.com.br"]';
-            var slug = window.location.pathname.replace(/^\/|\/$/g,'');
-            var ublk = [
-                utm.utm_source,utm.utm_medium,utm.utm_campaign,utm.utm_term,utm.utm_content,utm.utm_id
-            ].join('|');
-            
-            var xcod = [
-            utils.getURLParam('mac_id')    
-              || utils.getURLParam('gac_id')    
-              || utils.getURLParam('tiktok_id'),
-            utils.getURLParam('s_as_id'),
-            utils.getURLParam('s_ad_id')
-        ].join('|');
-
-            document.querySelectorAll(sel).forEach(function(a){
-                var href = a.getAttribute('href'),
-                    sep  = href.indexOf('?')!==-1?'&':'?';
-
-                var params;
-                if (href.includes('hotmart.com')) {
-                params = 'sck='+ublk+'&xcod='+xcod+'&src='+slug;
-                } else {
-                params = 'sck='+ublk+'&xcod='+xcod+'&src='+slug;
-                }
-
-                a.setAttribute('href', href + sep + params);
-            });
-        }
-
-        // dispara em todo input
-        Array.from(f.getElementsByTagName('input')).forEach(function(i){
-            i.addEventListener('input', updateHidden);
+        var links = document.querySelectorAll(sel);
+        console.log('processPaymentLinks: encontrados', links.length, 'links');
+        links.forEach(a => {
+            var href = a.href,
+                sep  = href.includes('?') ? '&' : '?',
+                params = href.includes('hotmart.com')
+                       ? 'sck='+ublk+'&xcod='+xcod+'&src='+slug
+                       : 'utm_source='+ublk+'&xcod='+xcod+'&src='+slug;
+            a.href = href + sep + params;
         });
-
-        // primeira chamada
-        updateHidden();
     }
 
-    // 5) Inicializa tudo
-    onDOMReady(function(){
-        loadCryptoJS(function(){
-            utils.getGeoData(setupForm);
+    // 6) setupForm opcional
+    function setupForm(geo) {
+        var form = document.querySelector('form');
+        if (!form) return () => {};
+        var updateHidden = () => {
+            var now = Math.floor(Date.now()/1000), u = utils.getUTMParams(), fb = utils.getFBCookies(), v = {};
+            ['name','email','doc','phone'].forEach(k => v[k] = (form.querySelector('[name="'+k+'"]')||{}).value||'');
+            var jsonpx = { data: [{ event_name: 'Lead', event_time: now, event_source_url: location.href,
+                action_source: 'website', user_data: {
+                    em: utils.hashData(v.email), ph: utils.hashData(v.phone.replace(/\D/g,'')),
+                    ct: utils.hashData(geo.city), st: utils.hashData(geo.st), zp: utils.hashData(geo.zp), country: utils.hashData(geo.country),
+                    client_ip_address: geo.ip, client_user_agent: navigator.userAgent, fbp: fb.fbp, fbc: fb.fbc,
+                    external_id: utils.hashData(geo.ip)
+                }, custom_data: Object.assign({ currency: 'BRL', content_type: 'lead', event_day: new Date().getDate(), event_time_interval: new Date().toISOString() }, u)
+            }], test_event_code: '' };
+            var hf = document.getElementById('form-field-jsonpx'); if (hf) hf.value = JSON.stringify(jsonpx);
+            console.log('updateHidden executed');
+            processPaymentLinks();
+        };
+        form.querySelectorAll('input').forEach(i => i.addEventListener('input', updateHidden));
+        updateHidden();
+        return updateHidden;
+    }
+
+    // 7) Inicialização
+    onDOMReady(() => {
+        console.log('DOM ready');
+        // primeiro processamento de links sem esperar geo
+        processPaymentLinks();
+        loadCryptoJS(() => {
+            console.log('CryptoJS loaded');
+            var geo = Object.assign({}, DEFAULT_GEO);
+            var triggerForm = setupForm(geo);
+            utils.getGeoData(fetched => {
+                console.log('GeoData fetched:', fetched);
+                Object.assign(geo, fetched);
+                // atualiza form e links com geo
+                triggerForm();
+                processPaymentLinks();
+            });
         });
     });
-
 })();
