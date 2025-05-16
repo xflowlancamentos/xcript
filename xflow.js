@@ -73,7 +73,7 @@
             xcod= ['mac_id','gac_id','tiktok_id','s_as_id','s_ad_id']
                   .map(utils.getURLParam).filter(Boolean).join('|');
 
-        var links = document.querySelectorAll(sel);
+        links = document.querySelectorAll(sel);
         console.log('processPaymentLinks: encontrados', links.length, 'links');
         links.forEach(a => {
             var href = a.href,
@@ -92,6 +92,8 @@
         var updateHidden = () => {
             var now = Math.floor(Date.now()/1000), u = utils.getUTMParams(), fb = utils.getFBCookies(), v = {};
             ['name','email','doc','phone'].forEach(k => v[k] = (form.querySelector('[name="'+k+'"]')||{}).value||'');
+            
+            // JSON para pixel de rastreamento
             var jsonpx = { data: [{ event_name: 'Lead', event_time: now, event_source_url: location.href,
                 action_source: 'website', user_data: {
                     em: utils.hashData(v.email), ph: utils.hashData(v.phone.replace(/\D/g,'')),
@@ -100,8 +102,59 @@
                     external_id: utils.hashData(geo.ip)
                 }, custom_data: Object.assign({ currency: 'BRL', content_type: 'lead', event_day: new Date().getDate(), event_time_interval: new Date().toISOString() }, u)
             }], test_event_code: '' };
-            var hf = document.getElementById('form-field-jsonpx'); if (hf) hf.value = JSON.stringify(jsonpx);
-            console.log('updateHidden executed');
+            
+            // Preenche o campo jsonpx
+            var hf = document.getElementById('form-field-jsonpx'); 
+            if (hf) hf.value = JSON.stringify(jsonpx);
+            
+            // NOVO: Preencher campos url, slug, UTMs e outros parâmetros
+            var fullUrl = window.location.href;
+            var slug = location.pathname.replace(/^\//,'').replace(/\/$/,'');
+            var utms = utils.getUTMParams();
+
+            // Preencher URL e slug
+            var urlField = document.getElementById('form-field-url');
+            if (urlField) urlField.value = fullUrl;
+
+            var slugField = document.getElementById('form-field-slug');
+            if (slugField) slugField.value = slug;
+
+            // Preencher todas as UTMs
+            var utmSourceField = document.getElementById('form-field-utm_source');
+            if (utmSourceField) utmSourceField.value = utms.utm_source;
+
+            var utmMediumField = document.getElementById('form-field-utm_medium');
+            if (utmMediumField) utmMediumField.value = utms.utm_medium;
+
+            var utmCampaignField = document.getElementById('form-field-utm_campaign');
+            if (utmCampaignField) utmCampaignField.value = utms.utm_campaign;
+
+            var utmIdField = document.getElementById('form-field-utm_id');
+            if (utmIdField) utmIdField.value = utms.utm_id;
+
+            var utmTermField = document.getElementById('form-field-utm_term');
+            if (utmTermField) utmTermField.value = utms.utm_term;
+
+            var utmContentField = document.getElementById('form-field-utm_content');
+            if (utmContentField) utmContentField.value = utms.utm_content;
+
+            // Preencher outros IDs
+            var macIdField = document.getElementById('form-field-mac_id');
+            if (macIdField) macIdField.value = utils.getURLParam('mac_id');
+
+            var gacIdField = document.getElementById('form-field-gac_id');
+            if (gacIdField) gacIdField.value = utils.getURLParam('gac_id');
+
+            var tiktokIdField = document.getElementById('form-field-tiktok_id');
+            if (tiktokIdField) tiktokIdField.value = utils.getURLParam('tiktok_id');
+
+            var sAsIdField = document.getElementById('form-field-s_as_id');
+            if (sAsIdField) sAsIdField.value = utils.getURLParam('s_as_id');
+
+            var sAdIdField = document.getElementById('form-field-s_ad_id');
+            if (sAdIdField) sAdIdField.value = utils.getURLParam('s_ad_id');
+            
+            console.log('updateHidden executed: url = ' + fullUrl + ', slug = ' + slug);
             processPaymentLinks();
         };
         form.querySelectorAll('input').forEach(i => i.addEventListener('input', updateHidden));
@@ -128,3 +181,5 @@
         });
     });
 })();
+Melhorar
+Explicar
