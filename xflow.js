@@ -61,6 +61,10 @@
                     }
                 })
                 .catch(() => { if (!done) { done = true; clearTimeout(to); cb(DEFAULT_GEO); } });
+        },
+        // Adiciona esta função para verificar se a URL já tem os parâmetros
+        hasCustomParams: url => {
+            return url.includes('sck=') || url.includes('utm_source=') && url.includes('xcod=') && url.includes('src=');
         }
     };
 
@@ -76,12 +80,20 @@
         links = document.querySelectorAll(sel);
         console.log('processPaymentLinks: encontrados', links.length, 'links');
         links.forEach(a => {
-            var href = a.href,
-                sep  = href.includes('?') ? '&' : '?',
+            var href = a.href;
+            
+            // Verifica se os parâmetros já foram adicionados
+            if (utils.hasCustomParams(href)) {
+                console.log('Link já processado:', href);
+                return; // Pula este link
+            }
+            
+            var sep  = href.includes('?') ? '&' : '?',
                 params = href.includes('hotmart.com')
                        ? 'sck='+ublk+'&xcod='+xcod+'&src='+slug
                        : 'utm_source='+ublk+'&xcod='+xcod+'&src='+slug;
             a.href = href + sep + params;
+            console.log('Link processado:', a.href);
         });
     }
 
@@ -155,7 +167,8 @@
             if (sAdIdField) sAdIdField.value = utils.getURLParam('s_ad_id');
             
             console.log('updateHidden executed: url = ' + fullUrl + ', slug = ' + slug);
-            processPaymentLinks();
+            
+            // Não execute processPaymentLinks() aqui para evitar loops
         };
         form.querySelectorAll('input').forEach(i => i.addEventListener('input', updateHidden));
         updateHidden();
@@ -165,7 +178,7 @@
     // 7) Inicialização
     onDOMReady(() => {
         console.log('DOM ready');
-        // primeiro processamento de links sem esperar geo
+        // Processa links apenas uma vez na inicialização
         processPaymentLinks();
         loadCryptoJS(() => {
             console.log('CryptoJS loaded');
@@ -174,9 +187,9 @@
             utils.getGeoData(fetched => {
                 console.log('GeoData fetched:', fetched);
                 Object.assign(geo, fetched);
-                // atualiza form e links com geo
+                // atualiza form mas não processa links novamente
                 triggerForm();
-                processPaymentLinks();
+                // Não execute processPaymentLinks() aqui para evitar loops
             });
         });
     });
