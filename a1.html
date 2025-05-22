@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Áudio</title>
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.6.7/plyr.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap');
+      
+    body {
+      height: 100vh;
+      overflow: hidden;
+      margin: 0px;
+    }    
+
+    .audio-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: 'Open Sans', sans-serif;
+      justify-content: flex-start;
+      cursor: pointer; 
+      width: 100px;
+    }
+
+    .audio-container img {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      padding-right: 8px;
+      padding-left: 10px;
+    }
+
+    .audio-container .microphone-icon {
+      position: relative;
+      margin-left: -67px;
+      margin-bottom: -25px;
+      font-size: 22px;
+      color: #4ad954;
+    }
+
+    .audio-container .microphone-icon.blue {
+      color: #3db8ee;
+    }
+
+    .plyr--audio .plyr__control.plyr__tab-focus,
+    .plyr--audio .plyr__control:hover,
+    .plyr--audio .plyr__control[aria-expanded=false] {
+      background: rgba(0, 0, 0, 0);
+      background: var(--plyr-audio-control-background-hover, var(--plyr-color-main, var(--plyr-color-main, rgba(0, 0, 0, 0))));
+      color: rgba(0, 0, 0, 0);
+      color: var(--plyr-audio-control-color-hover, #797979)
+    }
+
+    .plyr--audio .plyr__controls {
+      background: rgba(0, 0, 0, 0);
+      background: var(--plyr-audio-controls-background, rgba(0, 0, 0, 0));
+      border-radius: inherit;
+      color: #4a5464;
+      color: var(--plyr-audio-control-color,#4a5464);
+      margin-left: 0px;
+      padding: 0px;
+    }
+
+    .plyr--audio .plyr__control--overlaid .plyr__control__icon {
+      font-size: 33px;
+    }
+
+    .plyr--full-ui input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      border: 0;
+      border-radius: 100%;
+      box-shadow: 0 1px 1px rgba(35,40,47,.15),0 0 0 1px rgba(35,40,47,.2);
+      box-shadow: var(--plyr-range-thumb-shadow,0 1px 1px rgba(35,40,47,.15),0 0 0 1px rgba(35,40,47,.2));
+      height: 13px;
+      height: var(--plyr-range-thumb-height,13px);
+      margin-top: -4px;
+      margin-top: calc(var(--plyr-range-thumb-height,13px)/2*-1 - var(--plyr-range-track-height,5px)/2*-1);
+      position: relative;
+      -webkit-transition: all .2s ease;
+      transition: all .2s ease;
+      width: 13px;
+      width: var(--plyr-range-thumb-height,13px);
+      background: var(--range-thumb-background, #4ad954);
+    }  
+
+    .plyr--full-ui input[type=range].blue::-webkit-slider-thumb {
+      background: var(--range-thumb-background-active, #3db8ee);
+    }
+  
+    .hide {
+      display: none;
+    }
+
+    .plyr__controls .plyr__controls__item.plyr__progress__container:first-child,
+    .plyr__controls .plyr__controls__item.plyr__time+.plyr__time,
+    .plyr__controls .plyr__controls__item.plyr__time:first-child {
+      padding-left: 0;
+      display: block;
+      margin-left: 7.5px;
+    }
+
+    .plyr__time+.plyr__time:before {
+      content: "";
+      margin-right: var(--plyr-control-spacing);
+    }
+
+    .plyr--audio .plyr__controls .plyr__controls__item.plyr__time--current.hide,
+    .plyr--audio .plyr__controls .plyr__controls__item.plyr__time--duration.hide {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="audio-container" id="audioContainer">
+    <audio class="plyr" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Primeiro%20audio%20do%20funil-2mNJqWmenE4DZrAmvMw7gdPEXplma9.mp3"></audio>
+    <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202025-04-24%20at%2018.25.03-dnE9mgrpLTvOBeTEHKFo8JJ2LoeA4E.jpeg" alt="Imagem">
+    <div class="microphone-icon">
+      <i class="fas fa-microphone"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.plyr.io/3.6.7/plyr.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Inicializar o player
+      const player = new Plyr('.plyr', {
+        controls: ['play', 'progress', 'current-time', 'duration']
+      });
+
+      // Elementos
+      const audioContainer = document.getElementById('audioContainer');
+      const microphoneIcon = document.querySelector('.microphone-icon');
+      const progressInput = document.querySelector('[data-plyr="seek"]');
+
+      // Event listeners do player
+      player.on('play', function() {
+        const currentTimeEl = document.querySelector('.plyr__time--current');
+        const durationEl = document.querySelector('.plyr__time--duration');
+        
+        if (currentTimeEl) currentTimeEl.classList.remove('hide');
+        if (durationEl) durationEl.classList.add('hide');
+        
+        microphoneIcon.classList.add('blue');
+        
+        // Alterar cor do slider
+        if (progressInput) {
+          progressInput.classList.add('blue');
+          progressInput.style.setProperty('--range-thumb-background', '#3db8ee');
+        }
+      });
+
+      player.on('pause', function() {
+        const currentTimeEl = document.querySelector('.plyr__time--current');
+        const durationEl = document.querySelector('.plyr__time--duration');
+        
+        if (currentTimeEl) currentTimeEl.classList.add('hide');
+        if (durationEl) durationEl.classList.remove('hide');
+        
+        microphoneIcon.classList.remove('blue');
+        
+        // Restaurar cor original do slider
+        if (progressInput) {
+          progressInput.classList.remove('blue');
+          progressInput.style.setProperty('--range-thumb-background', '#4ad954');
+        }
+      });
+
+      player.on('ended', function() {
+        const currentTimeEl = document.querySelector('.plyr__time--current');
+        const durationEl = document.querySelector('.plyr__time--duration');
+        
+        if (currentTimeEl) currentTimeEl.classList.add('hide');
+        if (durationEl) durationEl.classList.remove('hide');
+        
+        microphoneIcon.classList.remove('blue');
+        
+        // Restaurar cor original do slider
+        if (progressInput) {
+          progressInput.classList.remove('blue');
+          progressInput.style.setProperty('--range-thumb-background', '#4ad954');
+        }
+      });
+
+      // Click no container para play/pause
+      audioContainer.addEventListener('click', function(event) {
+        // Evitar conflito se clicou diretamente nos controles
+        if (event.target.closest('.plyr__controls')) {
+          return;
+        }
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        if (player.playing) {
+          player.pause();
+        } else {
+          player.play();
+        }
+      });
+
+      // Inicializar estado
+      const currentTimeEl = document.querySelector('.plyr__time--current');
+      if (currentTimeEl) currentTimeEl.classList.add('hide');
+    });
+  </script>
+</body>
+</html>
